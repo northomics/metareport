@@ -1,0 +1,28 @@
+Package: metareport
+Type: Package
+Title: using opencpu server to render rmarkdown document on user uploaded data table
+Version: 0.2
+Authors@R: 
+    person(given = "Zhibin",
+           family = "Ning",
+           role = c("aut", "cre"),
+           email = "ningzhibin@gmail.com")
+Maintainer: Ning Zhibin <ningzhibin@gmail.com>
+Description: This package provides a way for general user to upload a data table, doing the analysis on an R server, and return the report from a browser or using API. In this package, an opencpu server was used to generate a quick report using rmarkdonw template. The package is an update of the old rmdocpu one. install ningzhibin/metalab from github first before usage.
+License: GNU
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1.9001
+Depends: R (>= 3.6.0)
+Imports:
+  utils,
+  RCurl, 
+  httr,
+  rmarkdown,
+  ggplot2,
+  plotly,
+  shiny,
+  tidyverse,
+  DT,
+  metalab
+  

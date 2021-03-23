@@ -1,0 +1,69 @@
+
+
+```{r}
+#define before using this block
+# data_table_plot
+# section_title
+# cutoff
+# maintitle
+# xlabel
+# i, the meta colum to be used
+
+```
+
+
+##  `r section_title ` {.tabset .tabset-fade }
+
+
+```{r echo=FALSE}
+
+if(if_combined){   # plot without meta
+
+    plots <-  MQ_QC_plot(data_table_plot, plot_type = c("bar", "histogram", "box"), cutoff = cutoff, maintitle = maintitle, xlabel = xlabel)
+  
+}else{  # plot with meta
+# put the grouping information into the data.frame
+    data_table_plot_merged <- merge(data_table_plot, meta_table, by.x= colnames(data_table_plot)[1], by.y = colnames(meta_table)[1])
+    
+    # the plot, with meta, which is now column i+1, i is the column index in the meta table
+    plots <-  MQ_QC_plot(data_table_plot_merged, plot_type = c("bar", "histogram", "box"), group = colnames(data_table_plot_merged)[i+1],cutoff = cutoff,maintitle = maintitle, xlabel = xlabel)
+  
+}
+
+
+```
+
+
+### Scatter plot
+
+```{r echo=FALSE,fig.width= 8,fig.height= figure_height}
+if(params$if_html){
+  plotly::ggplotly(plots$bar_plot)
+}else{
+  plots$bar_plot
+}
+
+```
+
+### Density plot
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+if(params$if_html){
+  plotly::ggplotly(plots$histogram_plot)
+}else{
+  plots$histogram_plot
+}
+
+```
+
+### Box plot
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+if(params$if_html){
+  
+  plotly::ggplotly(plots$box_plot)
+}else{
+  plots$box_plot
+}
+
+```
