@@ -59,7 +59,7 @@ library(tidyverse)
 library(ggplot2)
 library(plotly)
 library(DT)
-library(metalab) # wrapped functions in metalab # install 
+library(rmetalab) # wrapped functions in metalab # install 
 
 ```
 
@@ -72,14 +72,13 @@ library(metalab) # wrapped functions in metalab # install
 
 
 
-```{r process and meta_table check, echo=FALSE,fig.width= 15,fig.height=10}
+```{r process and meta_table check, echo=FALSE,fig.width= 15,fig.height=10, error=TRUE, eval= TRUE}
 
 # collect input
 data_table <- params$data_table
 meta_table <- params$meta_table 
 
 # process the file
-
 summary_file_summary <- tidy_MQ_summary(data_table)
 
 # get the raw stat line for output
@@ -151,7 +150,7 @@ figure_height <- 0.1*nrow(raw)+2
 
 
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', error=TRUE, eval= TRUE}
 data_table_plot <- data.frame(rawfile= raw[["Raw file"]], msms_id_rate = raw[["MS/MS Identified [%]"]])
 
 cutoff <- 20
@@ -159,7 +158,7 @@ maintitle <- "MSMS ID Rate"
 xlabel <- "MSMS ID Rate (%)"
 
 section_title <- "No Grouping"
-if_combined <- "TRUE"
+no_grouping <- "TRUE"
 
 res <- knitr::knit_child('Child_MQ_QC_plot.Rmd', envir = environment(), quiet = TRUE)
 cat(res, sep = '\n')
@@ -168,13 +167,13 @@ cat(res, sep = '\n')
 
 
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', error=TRUE, eval= TRUE}
 
 if(!is.null(meta_table)){
   for(i in 3: ncol(meta_table)){ # i is the column index
       #section_title <-   paste0(unique(meta_table[,i]), collapse="; ")   
        section_title<- paste0("Grouping: " , paste0(unique(meta_table[,i]), collapse="; ") ) 
-       if_combined <- "FALSE"
+       no_grouping <- "FALSE"
        res <- knitr::knit_child('Child_MQ_QC_plot.Rmd', quiet = TRUE)
        cat(res, sep = '\n')
    }
@@ -187,14 +186,14 @@ if(!is.null(meta_table)){
 #  Peptide Sequence identified {.tabset .tabset-fade }
 
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', error=TRUE, eval= TRUE}
 data_table_plot <- data.frame(rawfile= raw[["Raw file"]], Peptide_sequence_identified = raw[["Peptide Sequences Identified"]])
 cutoff <- 5000
 maintitle <- "Peptide Sequences Identified"
 xlabel <- "# Peptide Sequences Identified"
 
 section_title <- "No Grouping"
-if_combined <- "TRUE"
+no_grouping <- "TRUE"
 
 res <- knitr::knit_child('Child_MQ_QC_plot.Rmd', envir = environment(), quiet = TRUE)
 cat(res, sep = '\n')
@@ -203,13 +202,13 @@ cat(res, sep = '\n')
 
 
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', error=TRUE, eval= TRUE}
 
 if(!is.null(meta_table)){
   for(i in 3: ncol(meta_table)){ # i is the column index
       #section_title <-   paste0(unique(meta_table[,i]), collapse="; ")   
        section_title <- paste0("Grouping: " , paste0(unique(meta_table[,i]), collapse="; ") ) 
-       if_combined <- "FALSE"
+       no_grouping <- "FALSE"
        res <- knitr::knit_child('Child_MQ_QC_plot.Rmd', quiet = TRUE)
        cat(res, sep = '\n')
    }
@@ -224,8 +223,7 @@ if(!is.null(meta_table)){
 
 **The overall performance for all raw files:**
 
-
-```{r echo=FALSE}
+```{r echo=FALSE, error=TRUE, eval= TRUE}
 if(params$if_html){
   nrows <- nrow(summary_file_summary$summary_all)
   DT::datatable(summary_file_summary$summary_all,options = list(pageLength = nrows)) # datatable is only good for html 

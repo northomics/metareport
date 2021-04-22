@@ -1,0 +1,27 @@
+---
+title: "pheamap test"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+
+# pheatmap
+
+
+
+<!-- ```{r child=if(TRUE) "pheatmap.Rmd"} -->
+
+<!-- ``` -->
+
+```{r, echo=FALSE, results='asis', error=TRUE, eval= TRUE}
+
+res <- knitr::knit_child('pheatmap.Rmd', envir = environment(), quiet = TRUE)
+cat(res, sep = '\n')
+
+
+```

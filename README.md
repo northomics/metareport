@@ -19,6 +19,11 @@ First choice is that you can use it in R, as demoed in the R_curl_ocpu_test_debu
 Once you know the principle how to upload (post) your data table, and download the report file (curl), you will be able to adapt this in to java, python, javascripit in html. 
 
 
+# change log
+
+
+version 0.0.7, using rio::import to read tsv/csv file. This will unifile the file input. e.g. the function.csv is a csv file, while all others files are tsv.  
+
 version 0.0.6 add support for pdf format report generation (for some slow computers, openning a large html file (with a lot of figures and table will be slow))
 
 

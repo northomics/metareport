@@ -1,0 +1,33 @@
+
+
+
+## No Grouping
+
+
+### Heatmap of Q100 peptides (with 100% presence across experiments)
+
+
+
+
+```{r}
+
+
+ggplot2::qplot(1,1)
+
+
+```
+
+
+
+```{r}
+
+plot(1,1)
+
+pheatmap::pheatmap(mtcars)
+
+
+
+```
+
+
+

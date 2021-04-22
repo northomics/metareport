@@ -15,9 +15,9 @@
 ##  `r section_title ` {.tabset .tabset-fade }
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, error=TRUE }
 
-if(if_combined){   # plot without meta
+if(no_grouping){   # plot without meta
 
     plots <-  MQ_QC_plot(data_table_plot, plot_type = c("bar", "histogram", "box"), cutoff = cutoff, maintitle = maintitle, xlabel = xlabel)
   
@@ -36,18 +36,18 @@ if(if_combined){   # plot without meta
 
 ### Scatter plot
 
-```{r echo=FALSE,fig.width= 8,fig.height= figure_height}
+```{r echo=FALSE,fig.width= 8,fig.height= figure_height, error=TRUE }
 if(params$if_html){
-  plotly::ggplotly(plots$bar_plot)
+  try(plotly::ggplotly(plots$bar_plot))
 }else{
-  plots$bar_plot
+  try(plots$bar_plot)
 }
 
 ```
 
 ### Density plot
 
-```{r echo=FALSE,fig.width= 8,fig.height=6}
+```{r echo=FALSE,fig.width= 8,fig.height=6, error=TRUE }
 if(params$if_html){
   plotly::ggplotly(plots$histogram_plot)
 }else{
@@ -58,7 +58,7 @@ if(params$if_html){
 
 ### Box plot
 
-```{r echo=FALSE,fig.width= 8,fig.height=6}
+```{r echo=FALSE,fig.width= 8,fig.height=6, error=TRUE }
 if(params$if_html){
   
   plotly::ggplotly(plots$box_plot)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/metareport.R
 \name{metareport}
 \alias{metareport}
-\title{wrapper function of rmarkdown::render for opencpu to render a report for maxquant summary from markdown template}
+\title{wrapper function of rmarkdown::render}
 \usage{
 metareport(
   type = "summary",
@@ -11,7 +11,8 @@ metareport(
   template_version = "stable",
   url_endpoint = "https://gitlab.com/iMetaLab/rmdocpu/-/raw/master/",
   output_format = "html_document",
-  output_dir = NULL
+  output_dir = NULL,
+  output_file = "output.html"
 )
 }
 \arguments{
@@ -25,25 +26,66 @@ metareport(
 
 \item{url_endpoint}{if template_version is other than stable, a url_endpoint has to be set corretly, otherwise, a “stable” version will be used instead. see default as example: https://gitlab.com/iMetaLab/rmdocpu/-/raw/master/ if you want to use customized template}
 
-\item{output_format}{see output_format in render, default as html, which has interactivity with plotly support}
+\item{output_format}{sstring, ee output_format in render, default as html, which has interactivity with plotly support}
 
-\item{output_dir}{see output_dir in render, default as the same path of the rmarkdown input}
+\item{output_dir}{string, see output_dir in render, default as the same path of the rmarkdown input}
+
+\item{output_file}{string, the name of the output file, default for html document is output.html}
 }
 \value{
 no direct return, but write an output.html to the temp session on the opencpu server
 }
 \description{
-This function is destined for working on the opencpu server end, accepting file posted by front end to produce an html file to send to the front end.
-It also works in  stand-alone mode, to generate a report file, output.html, using a public accessible rmd file on github. Of course, this need internet connection to run
+This metareport function provides a way of generting the report on an R server with provided templates, and return the report from a browser or using API. 
+Of course it works as well on the user end as a stand-alone mode. 
+Install ningzhibin/rmetalab from github first before usage.
 }
 \examples{
-  datafile <- system.file("extdata","summary.txt", package = "metareport")
-  metafile <-system.file("extdata","metainfo.txt", package = "metareport")
-  
-  # generate a report without meta information 
-  metareport(type = "summary", file = datafile, output_dir =  getwd())
-  # generate a report with meta information
-   metareport(type = "summary",file = datafile , meta =metafile, output_dir =  getwd())
+
+metafile <-system.file("extdata","metainfo.txt", package = "metareport")
+
+## for summary.txt report
+datafile <- system.file("extdata","summary.txt", package = "metareport")
+# generate a report without meta information 
+metareport(type = "summary", file = datafile, output_dir =  getwd(), output_file = "summary.html" )
+# generate a report with meta information
+metareport(type = "summary",file = datafile , meta = metafile, output_dir =  getwd(),output_file = "report_summary.html")
+
+
+## for peptide.txt report
+datafile <- system.file("extdata","peptides_report.txt", package = "metareport")
+# generate a report without meta information 
+metareport(type = "summary", file = datafile, output_dir =  getwd(), output_file = "summary.html" )
+# generate a report with meta information
+metareport(type = "summary",file = datafile , meta = metafile, output_dir =  getwd(),output_file = "report_peptide.html")
+
+
+## for proteinGroup.txt report
+datafile <- system.file("extdata","proteinGroups_report.txt", package = "metareport")
+# generate a report without meta information 
+metareport(type = "summary", file = datafile, output_dir =  getwd(), output_file = "summary.html" )
+# generate a report with meta information
+metareport(type = "summary",file = datafile , meta = metafile, output_dir =  getwd(),output_file = "report_protein.html")
+
+
+#' ## for taxon report
+datafile <- system.file("extdata","Builtin.taxa.refine.csv", package = "metareport")
+# generate a report without meta information 
+metareport(type = "summary", file = datafile, output_dir =  getwd(), output_file = "summary.html" )
+# generate a report with meta information
+metareport(type = "summary",file = datafile , meta = metafile, output_dir =  getwd(),output_file = "report_taxon.html")
+
+
+#' ## for function report
+datafile <- system.file("extdata","functions.csv", package = "metareport")
+# generate a report without meta information 
+metareport(type = "summary", file = datafile, output_dir =  getwd(), output_file = "summary.html" )
+# generate a report with meta information
+metareport(type = "summary",file = datafile , meta = metafile, output_dir =  getwd(),output_file = "report_function.html")
+
+
+
+
 
 }
 \seealso{
