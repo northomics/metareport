@@ -1,26 +1,26 @@
 ---
 title: "Function Annoation Quick View"
-author: Suggestions to imetalabca@gmail.com
-date: Report generated @`r Sys.time()`
-always_allow_html: true
+author: "Suggestions to imetalabca@gmail.com"
+date: "Report generated @`r Sys.time()`"
 output:
   html_document:
+    fig_caption: yes
     fig_width: 10
-    fig_caption: TRUE
-    toc: true
+    number_sections: yes
+    toc: yes
     toc_depth: 4
     toc_float:
-      collapsed: TRUE
-      smooth_scroll: TRUE
-    number_sections: true
+      collapsed: yes
+      smooth_scroll: yes
   pdf_document:
-    toc: true
-    toc_depth: 4
     highlight: tango
-    number_sections: true
-params:  
-  input_datatable: !r NULL ### Manditory; main data input for the report
-  meta_table: !r NULL ### Optional; If provided, will do some statistics 
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+params:
+  input_datatable: 'NULL'
+  meta_table: 'NULL'
+always_allow_html: yes
 ---
 
 <style type="text/css">
@@ -54,6 +54,11 @@ library(pheatmap)
 library(reshape2)
 library(vegan)
 library(ggdendro)
+library(readr)
+library(voronoiTreemap)
+library(curl)
+library(UpSetR)
+library(dplyr)
 # library(gridExtra)
 
 #library(plotly)
@@ -70,6 +75,13 @@ library(ggdendro)
 # version control
 # 20190821 created function rmd
 # 20190904 added heatmap and PCA, can show meta info if provided
+# 20210610 changed pie chart into Voronoi plot
+# 20210803 (1) changed COG category calculation to duplicated sum of all categories as Xu suggested
+      ##       previously 3% proteins had multiple COG assignments. This will not have a significant impact
+      ##   (2) Added more functional information in summary 
+# 20210804 (1) Added percent stacked bar plots
+      ##   (2) Added all meta information (meta1-5) in pheatmaps
+# 20210805 Added upset plot for every meta information
 
 ```
 
@@ -79,13 +91,18 @@ library(ggdendro)
 # input
 if(is.null(params$input_datatable)){
   # test with local test with local files in the same dir,
-   data_fun <- read.csv("functions.csv", header = TRUE, sep = ",")
+   data_fun <- read.csv("functions_new.csv", header = TRUE, sep = ",")
 
 }else{
   # opencpu render from data table by parametrized input
   data_fun <- params$input_datatable
 }
 
+# for testing
+# data_fun <- read.csv("functions_new.csv", header = TRUE, sep = ",")
+
+# remove duplicated proteins in each protein group
+data_fun <- distinct(data_fun, Group_ID, .keep_all = TRUE)
 
 # Note: The folling analysis with meta info assumes that
 # 1st columns as sample name, 2nd column as experiment name, 3rd column and after as grouping
@@ -97,9 +114,11 @@ if(any(is.na(meta_table$meta1))){
   meta_table <- NULL
 }
 
-#meta_table <- read.delim("metadata.txt", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
+# for testing
+# meta_table <- read.delim("metainfo3.txt", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE)
 
-
+# load color codes for voronoi plot
+color_code <- read_csv(curl("https://raw.githubusercontent.com/yvonnelee1988/metareport/main/inst/extdata/color_codes_pretty.csv"))[, 1:2]
 
 ```
 
@@ -116,21 +135,25 @@ Protein groups annotation | Number (percentage)
 --------------------- | -----------------------
 Protein groups in your sample | `r nrow(data_fun)`
 Protein groups with COG annotation: | `r paste(nrow(data_fun[data_fun$COG.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$COG.accession != "",])/nrow(data_fun)),"%"),")")`
-Protein groups with NOG annotation: | `r paste(nrow(data_fun[data_fun$NOG.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$NOG.accession != "",])/nrow(data_fun)),"%"),")")`
-Protein groups with KEGG annotation:  | `r paste(nrow(data_fun[data_fun$KEGG.name != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$KEGG.name != "",])/nrow(data_fun)),"%"),")")`
-Protein groups with GOBP annotation: | `r   paste(nrow(data_fun[data_fun$GOBP.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$GOBP.accession != "",])/nrow(data_fun)),"%"),")")`
-Protein groups with GOCC annotation: | `r   paste(nrow(data_fun[data_fun$GOCC.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$GOCC.accession != "",])/nrow(data_fun)),"%"),")")`
-Protein groups with GOMF annotation: | `r   paste(nrow(data_fun[data_fun$GOMF.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$GOMF.accession != "",])/nrow(data_fun)),"%"),")")`
 Unique COG accessions annotated: | `r length(unique(data_fun$COG.accession))-1`
+Protein groups with NOG annotation: | `r paste(nrow(data_fun[data_fun$NOG.accession != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$NOG.accession != "",])/nrow(data_fun)),"%"),")")`
 Unique NOG accessions annotated: | `r length(unique(data_fun$NOG.accession))-1`
-Unique KEGG accessions annotated: | `r length(unique(data_fun$KEGG.accession))-1`
-Meta/grouping info provided: | `r if( !is.null(meta_table)){unique(meta_table[,3])}else{ "No meta information provided"} `
+Protein groups with KEGG ko annotation:  | `r paste(nrow(data_fun[data_fun$KEGG_ko != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$KEGG_ko != "",])/nrow(data_fun)),"%"),")")`
+Protein groups with GO annotation: | `r   paste(nrow(data_fun[data_fun$Gene_Ontology_id != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$Gene_Ontology_id != "",])/nrow(data_fun)),"%"),")")`
+Protein groups with EC annotation:  | `r paste(nrow(data_fun[data_fun$EC_id != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$EC_id != "",])/nrow(data_fun)),"%"),")")`
+Protein groups with CAZy annotation:  | `r paste(nrow(data_fun[data_fun$CAZy != "",]),"(",paste0(round(100*nrow(data_fun[data_fun$CAZy != "",])/nrow(data_fun)),"%"),")")`
+Meta/grouping info provided (Meta 1): | `r if(!is.null(meta_table)){unique(meta_table[,3])}else{ "No meta information provided"} `
+`r if(length(meta_table$meta2)){"Meta/grouping info provided (Meta 2):"} ` | `r if(length(meta_table$meta2)){unique(meta_table[,4])}else{ "Meta 2 not provided"} `
+`r if(length(meta_table$meta3)){"Meta/grouping info provided (Meta 3):"} ` | `r if(length(meta_table$meta3)){unique(meta_table[,5])}else{ "Meta 3 not provided"}`
+`r if(length(meta_table$meta3)){"Meta/grouping info provided (Meta 4):"} ` | `r if(length(meta_table$meta4)){unique(meta_table[,6])}else{ "Meta 4 not provided"}`
+`r if(length(meta_table$meta3)){"Meta/grouping info provided (Meta 5):"} ` | `r if(length(meta_table$meta5)){unique(meta_table[,7])}else{ "Meta 5 not provided"}`
 
-# Overview with pie charts
+
+# Overview with voronoi plots
 ## Overview of COG categories
-The figure below displays the composition of COG categories in each of your sample. Intensities in the pie chart are based on summed proteinGroup intensities across all samples.
+The figure below displays the composition of COG categories in your dataset. Areas in the voronoi plot are based on summed proteinGroup intensities across all samples.
 
-```{r COG_pie, echo=FALSE,fig.width= 10, fig.height=5}
+```{r COG_voronoi, echo=FALSE,fig.width= 10, fig.height=5}
 
 # Get the columns out of the table
 if(any(grepl("intensity.", colnames(data_fun), ignore.case=TRUE))){
@@ -138,82 +161,107 @@ if(any(grepl("intensity.", colnames(data_fun), ignore.case=TRUE))){
    colnames(intensity_columns)<-gsub("intensity.", "", colnames(intensity_columns), ignore.case=TRUE)
   }
 
-# Calculate subtotal for each category
-intensity_columns_C <- cbind(data_fun$COG.category, intensity_columns)
-data_fun_COG <- aggregate(. ~ data_fun$COG.category, data = intensity_columns_C[,-1, drop = FALSE], FUN = sum)
-data_fun_COG$`data_fun$COG.category` <- as.character(data_fun_COG$`data_fun$COG.category`)
-data_fun_COG$`data_fun$COG.category`[1] <- "Unmatched"
-data_fun_COG <- data_fun_COG[which(rowSums(data_fun_COG[,-1,drop =  FALSE])>0),]
+# Separating COG ids and sum up
+data_fun$COG.category <- substr(as.character(data_fun$COG.category),1,1)
+data_fun$COG.category.1 <- substr(as.character(data_fun$COG.category),1,1)
+data_fun$COG.category.2 <- substr(as.character(data_fun$COG.category),2,2)
+data_fun$COG.category.3 <- substr(as.character(data_fun$COG.category),3,3)
 
+# obtain COG columns
+intensity_columns_C.1 <- cbind(COG_cat = data_fun$COG.category.1, intensity_columns)
+intensity_columns_C.2 <- cbind(COG_cat = data_fun$COG.category.2, intensity_columns)
+intensity_columns_C.3 <- cbind(COG_cat = data_fun$COG.category.3, intensity_columns)
 
-# Prepare data for plotting
-Intensity <- rowSums(data_fun_COG[,-1, drop = FALSE])
-rowSum_COG <- as.data.frame(Intensity)
-COG_cat <- data_fun_COG[,1]
-rowSum_COG <- cbind(COG_cat, rowSum_COG)
-  
-#Draw pie chart
-plot_ly(rowSum_COG, labels = ~COG_cat, values = ~Intensity, type = 'pie') %>%
-        layout(title = 'Composition of COG categories',
-        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+intensity_columns_C.1 <- intensity_columns_C.1[!(intensity_columns_C.1$COG_cat == ""), ]
+intensity_columns_C.2 <- intensity_columns_C.2[!(intensity_columns_C.2$COG_cat == ""), ]
+intensity_columns_C.3 <- intensity_columns_C.3[!(intensity_columns_C.3$COG_cat == ""), ]
+
+#row bind to obtain a summary table of COG category values
+intensity_columns_C <- rbind(intensity_columns_C.1, intensity_columns_C.2, intensity_columns_C.3)
+
+# sum intensities under the same COG accessions
+data_fun_COG <- aggregate(. ~ intensity_columns_C$COG_cat, data = intensity_columns_C[,-1,drop = FALSE], FUN = sum)
+
+# calculate the weight of each feature
+intensity_weight <- as.data.frame(cbind( h2 = data_fun_COG[, 1],
+                       weight = rowSums(data_fun_COG[,2:ncol(data_fun_COG)])/sum(data_fun_COG[,2:ncol(data_fun_COG)])))
+
+# sum(intensity_weight$weight)
+
+# Prepare data table for voronoi plot -> json file
+data_voronoi <- cbind(h1 = "Total", h2 = intensity_weight$h2, h3 = intensity_weight$h2, weight = intensity_weight$weight, codes = intensity_weight$h2)
+data_voronoi_color <- merge(data_voronoi, color_code, by.x = "h2", by.y = "COG_cat")
+data_voronoi_color <- data_voronoi_color[, c(2,1,3,6,4,5)]
+#head(data_voronoi_color)
+
+# filter any value that is empty in the codes column
+data_voronoi_color$weight <- as.numeric(data_voronoi_color$weight)
+#is.numeric(data_voronoi_color$weight)
+
+# convert to json file
+data_voronoi_color_json <- vt_export_json(vt_input_from_df(data_voronoi_color, scaleToPerc = TRUE))
+vt_d3(data_voronoi_color_json, legend=TRUE, legend_title = "COG categories", size_border_hover = "5px", size_border = "2px", color_border = "#ffffff", seed=200)
+
 
 ```
 
 ## Overview of NOG categories
-The figure below displays the composition of NOG categories in each of your sample. Intensities in the pie chart are based on summed proteinGroup intensities across all samples.
+The figure below displays the composition of NOG categories in your dataset. Areas in the voronoi plot are based on summed proteinGroup intensities across all samples.
 
-```{r NOG_pie, echo=FALSE,fig.width= 10, fig.height=5}
+```{r NOG_voronoi, echo=FALSE,fig.width= 10, fig.height=5}
 
-# Calculate subtotal for each category
-intensity_columns_N <- cbind(data_fun$NOG.category, intensity_columns)
-data_fun_NOG <- aggregate(. ~ data_fun$NOG.category, data = intensity_columns_N[,-1,drop = FALSE], FUN = sum)
-data_fun_NOG$`data_fun$NOG.category` <- as.character(data_fun_NOG$`data_fun$NOG.category`)
-data_fun_NOG$`data_fun$NOG.category`[1] <- "Unmatched"
-data_fun_NOG <- data_fun_NOG[which(rowSums(data_fun_NOG[,-1,drop = FALSE])>0),]
+# Get the columns out of the table
+if(any(grepl("intensity.", colnames(data_fun), ignore.case=TRUE))){
+   intensity_columns <- data_fun[,grep("intensity.", colnames(data_fun), ignore.case=TRUE), drop = FALSE]
+   colnames(intensity_columns)<-gsub("intensity.", "", colnames(intensity_columns), ignore.case=TRUE)
+  }
 
-# Prepare data for plotting
-IntensityN <- rowSums(data_fun_NOG[,-1,drop = FALSE])
-rowSum_NOG <- as.data.frame(IntensityN)
-NOG_cat <- data_fun_NOG[,1]
-rowSum_NOG <- cbind(NOG_cat, rowSum_NOG)
-  
-#Draw pie chart
-plot_ly(rowSum_NOG, labels = ~NOG_cat, values = ~IntensityN, type = 'pie') %>%
-        layout(title = 'Composition of NOG categories',
-        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+# Separating NOG ids and sum up
+data_fun$NOG.category <- substr(as.character(data_fun$NOG.category),1,1)
+data_fun$NOG.category.1 <- substr(as.character(data_fun$NOG.category),1,1)
+data_fun$NOG.category.2 <- substr(as.character(data_fun$NOG.category),2,2)
+data_fun$NOG.category.3 <- substr(as.character(data_fun$NOG.category),3,3)
+
+# obtain NOG columns
+intensity_columns_N.1 <- cbind(NOG_cat = data_fun$NOG.category.1, intensity_columns)
+intensity_columns_N.2 <- cbind(NOG_cat = data_fun$NOG.category.2, intensity_columns)
+intensity_columns_N.3 <- cbind(NOG_cat = data_fun$NOG.category.3, intensity_columns)
+
+intensity_columns_N.1 <- intensity_columns_N.1[!(intensity_columns_N.1$NOG_cat == ""), ]
+intensity_columns_N.2 <- intensity_columns_N.2[!(intensity_columns_N.2$NOG_cat == ""), ]
+intensity_columns_N.3 <- intensity_columns_N.3[!(intensity_columns_N.3$NOG_cat == ""), ]
+
+#row bind to obtain a summary table of NOG category values
+intensity_columns_N <- rbind(intensity_columns_N.1, intensity_columns_N.2, intensity_columns_N.3)
+
+# sum intensities under the same NOG accessions
+data_fun_NOG <- aggregate(. ~ intensity_columns_N$NOG_cat, data = intensity_columns_N[,-1,drop = FALSE], FUN = sum)
+
+# calculate the weight of each feature
+intensity_weight <- as.data.frame(cbind( h2 = data_fun_NOG[, 1],
+                       weight = rowSums(data_fun_NOG[,2:ncol(data_fun_NOG)])/sum(data_fun_NOG[,2:ncol(data_fun_NOG)])))
+
+# sum(intensity_weight$weight)
+
+# Prepare data table for voronoi plot -> json file
+data_voronoi <- cbind(h1 = "Total", h2 = intensity_weight$h2, h3 = intensity_weight$h2, weight = intensity_weight$weight, codes = intensity_weight$h2)
+data_voronoi_color <- merge(data_voronoi, color_code, by.x = "h2", by.y = "COG_cat")
+data_voronoi_color <- data_voronoi_color[, c(2,1,3,6,4,5)]
+#head(data_voronoi_color)
+
+# filter any value that is empty in the codes column
+data_voronoi_color$weight <- as.numeric(data_voronoi_color$weight)
+#is.numeric(data_voronoi_color$weight)
+
+# convert to json file
+data_voronoi_color_json <- vt_export_json(vt_input_from_df(data_voronoi_color, scaleToPerc = TRUE))
+vt_d3(data_voronoi_color_json, legend=TRUE, legend_title = "NOG categories", size_border_hover = "5px", size_border = "2px", color_border = "#ffffff", seed=200)
+
 
 ```
 
-## Overview of KEGG pathways
-The figure below displays the composition of KEGG pathways in each of your sample. Intensities in the pie chart are based on summed proteinGroup intensities across all samples.
-
-```{r KEGG_pie, echo=FALSE,fig.width= 10, fig.height=5}
-
-# Calculate subtotal for each category
-intensity_columns_K <- cbind(data_fun$KEGG.name, intensity_columns)
-data_fun_KEGG <- aggregate(. ~ data_fun$KEGG.name, data = intensity_columns_K[,-1,drop = FALSE], FUN = sum)
-data_fun_KEGG$`data_fun$KEGG.name` <- as.character(data_fun_KEGG$`data_fun$KEGG.name`)
-data_fun_KEGG$`data_fun$KEGG.name`[1] <- "Unmatched"
-data_fun_KEGG <- data_fun_KEGG[which(rowSums(data_fun_KEGG[,-1,drop = FALSE])>0),]
-
-# Prepare data for plotting
-IntensityK <- rowSums(data_fun_KEGG[,-1,drop = FALSE])
-rowSum_KEGG <- as.data.frame(IntensityK)
-KEGG_cat <- data_fun_KEGG[,1]
-rowSum_KEGG <- cbind(KEGG_cat, rowSum_KEGG)
-  
-#Draw pie chart
-plot_ly(rowSum_KEGG, labels = ~KEGG_cat, values = ~IntensityK, type = 'pie') %>%
-        layout(title = 'Composition of KEGG pathways',
-        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
-
-```
-
-# Functional composition in each sample
-## COG composition in each sample
+# Overview with composition bar plots
+## COG composition in each sample, absolute intensities
 
 The figure below displays the composition of COG categories in each of your sample. Intensities in the bar plot are based on summed proteinGroup intensities corresponding to each category.
 
@@ -222,7 +270,7 @@ The figure below displays the composition of COG categories in each of your samp
 
 # Prepare data for plotting
 
-colnames(data_fun_COG)[colnames(data_fun_COG)=="data_fun$COG.category"] <- "Name"
+colnames(data_fun_COG)[colnames(data_fun_COG)=="intensity_columns_C$COG_cat"] <- "Name"
 data_fun_COG_gg <- melt(data = data_fun_COG,id.vars = c("Name"), variable.name = "Sample", value.name = "Intensity")
 
 #Draw stacked column bar
@@ -233,17 +281,28 @@ ggplotly(ggplot(data_fun_COG_gg, aes(x = Sample, y = Intensity, fill = Name)) +
 
 ```
 
-## NOG composition in each sample
+## COG composition in each sample, relative intensities
+
+The figure below displays the composition of COG categories in each of your sample. Intensities in the bar plot are based on summed proteinGroup intensities corresponding to each category.
+
+```{r COG_rel, echo=FALSE,fig.width= 12, fig.height=5}
+
+#Draw stacked column bar
+ggplotly(ggplot(data_fun_COG_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+          geom_col(position = "fill") + theme_bw() +
+         ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+) %>% style(legendgroup = NULL)
+
+```
+
+## NOG composition in each sample, absolute intensities
 
 Similar to the COG summary, the figure below displays the composition of NOG categories in each of your sample.
 
 ```{r NOG, echo=FALSE,fig.width= 12, fig.height=5}
-
-
-
 # Prepare data for plotting  
 
-colnames(data_fun_NOG)[colnames(data_fun_NOG)=="data_fun$NOG.category"] <- "Name"
+colnames(data_fun_NOG)[colnames(data_fun_NOG)=="intensity_columns_N$NOG_cat"] <- "Name"
 data_fun_NOG_gg <- melt(data = data_fun_NOG,id.vars = c("Name"), variable.name = "Sample", value.name = "Intensity")
 
 #Draw stacked column bar
@@ -254,22 +313,18 @@ ggplotly(ggplot(data_fun_NOG_gg, aes(x = Sample, y = Intensity, fill = Name)) +
 
 ```
 
-## KEGG composition in each sample
-The figure below displays the composition of KEGG pathways in each of your sample.
+## NOG composition in each sample, relative intensities
 
-```{r KEGG, echo=FALSE,fig.width= 12, fig.height=5}
+```{r NOG_rel, echo=FALSE,fig.width= 12, fig.height=5}
 
-
-# Prepare data for plotting  
-colnames(data_fun_KEGG)[colnames(data_fun_KEGG)=="data_fun$KEGG.name"] <- "Name"
-data_fun_KEGG_gg <- melt(data = data_fun_KEGG,id.vars = c("Name"), variable.name = "Sample", value.name = "Intensity")
-  
 #Draw stacked column bar
-ggplotly(ggplot(data_fun_KEGG_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
-             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-)
+ggplotly(ggplot(data_fun_NOG_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+         geom_col(position = "fill") +  theme_bw() +
+         ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
 ```
+
 
 `r if(ncol(data_fun_COG) > 2){ "# Heatmap of functional composition"} `
 `r if(ncol(data_fun_COG) > 2){ "## Heatmap of COG composition"} `
@@ -281,7 +336,7 @@ if(ncol(data_fun_COG) > 2){
   if(is.null(meta_table)){
     d3heatmap::d3heatmap(data_fun_COG[,-1,drop = FALSE],show_grid = FALSE, color = "RdYlBu", scale = "row")
   }else{
-    meta <- meta_table[,3, drop = FALSE]# for the report, only the first meta is used
+    meta <- meta_table[,-c(1:2), drop = FALSE]# for the report, only the first meta is used
     rownames(meta) <- colnames(data_fun_COG[,-1,drop = FALSE])
     pheatmap::pheatmap(data_fun_COG[,-1,drop = FALSE], annotation_col = meta, scale = "row")
   }
@@ -302,7 +357,7 @@ if(ncol(data_fun_NOG) > 2){
   if(is.null(meta_table)){
     d3heatmap::d3heatmap(data_fun_NOG[,-1,drop = FALSE],show_grid = FALSE, color = "RdYlBu", scale = "row")
   }else{
-    meta <- meta_table[,3, drop = FALSE]# for the report, only the first meta is used
+    meta <- meta_table[,-c(1:2), drop = FALSE]# for the report, only the first meta is used
     rownames(meta) <- colnames(data_fun_COG[,-1,drop = FALSE])
     pheatmap::pheatmap(data_fun_NOG[,-1,drop = FALSE], annotation_col = meta, scale = "row")
   }
@@ -312,36 +367,17 @@ if(ncol(data_fun_NOG) > 2){
 
 ```
 
-`r if(ncol(data_fun_KEGG) > 2){ "## Heatmap of KEGG composition"} `
-
-```{r echo=FALSE,fig.width= 8,fig.height=12}
-if(ncol(data_fun_KEGG) > 2){
-  rownames(data_fun_KEGG) <- data_fun_KEGG[,1]
-
-if(is.null(meta_table)){
-  d3heatmap::d3heatmap(data_fun_KEGG[,-1,drop = FALSE],show_grid = FALSE, color = "RdYlBu", scale = "row")
-}else{
-  meta <- meta_table[,3, drop = FALSE]# for the report, only the first meta is used
-  rownames(meta) <- colnames(data_fun_COG[,-1,drop = FALSE])
-  pheatmap:: pheatmap(data_fun_KEGG[,-1,drop = FALSE], annotation_col = meta, scale = "row")
-}
-
-  
-}
-
-
-```
-
 `r if(ncol(data_fun_COG) > 3){ "# PCA plots"} `
-`r if(ncol(data_fun_COG) > 3){ "## PCA plots of COG composition"} `
-
+`r if(ncol(data_fun_COG) > 3){ "## PCA plots based on COG categories"} `
+`r if(ncol(data_fun_COG) > 3 && is.null(meta_table)){"### No meta info provided"}`
 
 ```{r echo=FALSE,fig.width= 8,fig.height=6}
 
 if(ncol(data_fun_COG) > 3){
   df_COG_log10 <- log10(data_fun_COG[,-1,drop = FALSE]+1)
+}
 
-  if(is.null(meta_table)){
+if(is.null(meta_table)){
     PCA_result <- prcomp(t(df_COG_log10))
     loading <- as.data.frame(PCA_result$x)
   
@@ -364,28 +400,73 @@ if(ncol(data_fun_COG) > 3){
             ))
   
       
-  }else{
+}
+```
+
+`r if(ncol(data_fun_COG) > 3 && length(meta_table$meta1)){"### Meta 1"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG) > 3 && length(meta_table$meta1)){
     PCA_result <- prcomp(t(df_COG_log10))
     loading <- as.data.frame(PCA_result$x)
     meta_3D_PCA <- cbind(rownames(loading), meta_table[,3])
     PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
-  }
-
 }
+```
 
+`r if(ncol(data_fun_COG) > 3 && length(meta_table$meta2)){"### Meta 2"}`
 
+```{r echo=FALSE,fig.width= 8,fig.height=6}
 
+if(ncol(data_fun_COG) > 3 && length(meta_table$meta2)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,4])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_COG) > 3 && length(meta_table$meta3)){"### Meta 3"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG) > 3 && length(meta_table$meta3)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,5])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
 ```
 
 
-`r if(ncol(data_fun_NOG) > 3){ "## PCA plots of NOG composition"} `
-
+`r if(ncol(data_fun_COG) > 3 && length(meta_table$meta4)){"### Meta 4"}`
 
 ```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG) > 3 && length(meta_table$meta4)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,6])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_COG) > 3 && length(meta_table$meta5)){"### Meta 5"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG) > 3 && length(meta_table$meta5)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,7])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+
+`r if(ncol(data_fun_NOG) > 3){ "## PCA plots based on NOG categories"} `
+`r if(ncol(data_fun_NOG) > 3 && is.null(meta_table)){"### No meta info provided"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
 if(ncol(data_fun_NOG) > 3){
   df_NOG_log10 <- log10(data_fun_NOG[,-1,drop = FALSE]+1)
+}
 
-  if(is.null(meta_table)){
+if(is.null(meta_table)){
     PCA_result <- prcomp(t(df_NOG_log10))
     loading <- as.data.frame(PCA_result$x)
   
@@ -408,30 +489,82 @@ if(ncol(data_fun_NOG) > 3){
             ))
   
       
-  }else{
-    PCA_result <- prcomp(t(df_NOG_log10))
-    loading <- as.data.frame(PCA_result$x)
-    meta_3D_PCA <- cbind(rownames(loading), meta_table[,3])
-    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
-  }
-
 }
-
-
-
 ```
 
-
-`r if(ncol(data_fun_KEGG) > 3){ "## PCA plots of KEGG composition"} `
-
+`r if(ncol(data_fun_NOG) > 3 && length(meta_table$meta1)){"### Meta 1"}`
 
 ```{r echo=FALSE,fig.width= 8,fig.height=6}
-if(ncol(data_fun_KEGG) > 3){
-  
-  df_KEGG_log10 <- log10(data_fun_KEGG[,-1,drop = FALSE]+1)
 
-  if(is.null(meta_table)){
-    PCA_result <- prcomp(t(df_KEGG_log10))
+if(ncol(data_fun_NOG) > 3 && length(meta_table$meta1)){
+    PCA_result <- prcomp(t(df_NOG_log10))
+    loading <- as.data.frame(PCA_result$x)
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,3])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG) > 3 && length(meta_table$meta2)){"### Meta 2"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG) > 3 && length(meta_table$meta2)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,4])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG) > 3 && length(meta_table$meta3)){"### Meta 3"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG) > 3 && length(meta_table$meta3)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,5])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+
+`r if(ncol(data_fun_NOG) > 3 && length(meta_table$meta4)){"### Meta 4"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG) > 3 && length(meta_table$meta4)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,6])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG) > 3 && length(meta_table$meta5)){"### Meta 5"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG) > 3 && length(meta_table$meta5)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,7])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_COG) > 3){ "## PCA plots based on COG accessions"} `
+
+```{r COG_accession_PCA, echo=FALSE,fig.width= 8,fig.height=6}
+intensity_columns_CA <- cbind(data_fun$COG.accession, intensity_columns)
+data_fun_COG_acc <- aggregate(. ~ data_fun$COG.accession, data = intensity_columns_CA[,-1, drop = FALSE], FUN = sum)
+data_fun_COG_acc$`data_fun$COG.accession` <- as.character(data_fun_COG_acc$`data_fun$COG.accession`)
+data_fun_COG_acc$`data_fun$COG.accession`[1] <- "Unmatched"
+data_fun_COG_acc <- data_fun_COG_acc[which(rowSums(data_fun_COG_acc[,-1,drop =  FALSE])>0),]
+```
+
+`r if(ncol(data_fun_COG_acc) > 3 && is.null(meta_table)){"### No meta info provided"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3){
+  df_COG_log10_acc <- log10(data_fun_COG_acc[,-1,drop = FALSE]+1)
+}
+
+if(is.null(meta_table)){
+    PCA_result <- prcomp(t(df_COG_log10_acc))
     loading <- as.data.frame(PCA_result$x)
   
       # for screen plot
@@ -453,20 +586,380 @@ if(ncol(data_fun_KEGG) > 3){
             ))
   
       
-  }else{
-    PCA_result <- prcomp(t(df_KEGG_log10))
+}
+```
+
+`r if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta1)){"### Meta 1"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta1)){
+    PCA_result <- prcomp(t(df_COG_log10_acc))
     loading <- as.data.frame(PCA_result$x)
     meta_3D_PCA <- cbind(rownames(loading), meta_table[,3])
     PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
-  }
-
-  
-  
-  
 }
+```
+
+`r if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta2)){"### Meta 2"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta2)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,4])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta3)){"### Meta 3"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta3)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,5])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
 
 
+`r if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta4)){"### Meta 4"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta4)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,6])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta5)){"### Meta 5"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_COG_acc) > 3 && length(meta_table$meta5)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,7])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
 ```
 
 
 
+`r if(ncol(data_fun_NOG) > 3){ "## PCA plots based on NOG accessions"} `
+
+```{r NOG_accession_PCA, echo=FALSE,fig.width= 8,fig.height=6}
+intensity_columns_CA <- cbind(data_fun$NOG.accession, intensity_columns)
+data_fun_NOG_acc <- aggregate(. ~ data_fun$NOG.accession, data = intensity_columns_CA[,-1, drop = FALSE], FUN = sum)
+data_fun_NOG_acc$`data_fun$NOG.accession` <- as.character(data_fun_NOG_acc$`data_fun$NOG.accession`)
+data_fun_NOG_acc$`data_fun$NOG.accession`[1] <- "Unmatched"
+data_fun_NOG_acc <- data_fun_NOG_acc[which(rowSums(data_fun_NOG_acc[,-1,drop =  FALSE])>0),]
+```
+
+`r if(ncol(data_fun_NOG_acc) > 3 && is.null(meta_table)){"### No meta info provided"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3){
+  df_NOG_log10_acc <- log10(data_fun_NOG_acc[,-1,drop = FALSE]+1)
+}
+
+if(is.null(meta_table)){
+    PCA_result <- prcomp(t(df_NOG_log10_acc))
+    loading <- as.data.frame(PCA_result$x)
+  
+      # for screen plot
+      sd <- PCA_result$sde
+      var <- sd^2
+      var.percent <- var/sum(var) * 100
+      PCs <- paste0("PC", 1:length(var.percent))
+      df_scree <- data.frame(PC  = factor(PCs, levels = PCs), ratio = round(var.percent,1))
+      PCs <- paste0("PC", 1:length(var.percent), " (", df_scree[1:length(var.percent),2],"%)")
+  
+      plot_ly(loading, x = ~PC1, y = ~PC2, z = ~PC3) %>%
+            add_markers() %>%
+            add_text(text = row.names(loading)) %>%
+            layout(
+            scene = list(
+              xaxis = list(title = PCs[1]),
+              yaxis = list(title = PCs[2]),
+              zaxis = list(title = PCs[3])
+            ))
+  
+      
+}
+```
+
+`r if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta1)){"### Meta 1"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta1)){
+    PCA_result <- prcomp(t(df_NOG_log10_acc))
+    loading <- as.data.frame(PCA_result$x)
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,3])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta2)){"### Meta 2"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta2)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,4])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta3)){"### Meta 3"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta3)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,5])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+
+`r if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta4)){"### Meta 4"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta4)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,6])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta5)){"### Meta 5"}`
+
+```{r echo=FALSE,fig.width= 8,fig.height=6}
+
+if(ncol(data_fun_NOG_acc) > 3 && length(meta_table$meta5)){
+    meta_3D_PCA <- cbind(rownames(loading), meta_table[,7])
+    PCA_plot_3d_interactive_3(prcomp_out = PCA_result, grouping = meta_3D_PCA)
+}
+```
+
+`r if(!is.null(meta_table)){ "# Compare between groups"} `
+`r if(!is.null(meta_table)){ "## COG accession comparison"} `
+`r if(!is.null(meta_table)){ "### Meta 1"} `
+```{r upset_plot_COG_meta1, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(!is.null(meta_table)){
+rownames(data_fun_COG_acc) <- data_fun_COG_acc[,1]
+rownames(meta_table) <- meta_table[,1]
+data_upset_COG <- (data_fun_COG_acc[,-1])[-1,]
+data_upset_COG_meta <- cbind(meta_table, t(data_upset_COG))
+data_upset_COG_meta_sum <- data_upset_COG_meta %>%  
+                           group_by(meta1) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_COG_meta_sum) <- data_upset_COG_meta_sum[1, ]
+data_upset_COG_meta_sum <- data_upset_COG_meta_sum[-1, ]
+data_upset_COG_meta_sum_num <- sapply(data_upset_COG_meta_sum, as.numeric)  
+data_upset_COG_meta_sum_num <- data.frame(names = row.names(data_upset_COG_meta_sum), data_upset_COG_meta_sum_num)
+
+upset(data_upset_COG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+```
+
+`r if(length(meta_table$meta2)){ "### Meta 2"} `
+
+```{r upset_plot_COG_meta2, echo=FALSE,fig.width= 10, fig.height=5}
+if(length(meta_table$meta2)){
+data_upset_COG_meta_sum <- data_upset_COG_meta %>%  
+                           group_by(meta2) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_COG_meta_sum) <- data_upset_COG_meta_sum[1, ]
+data_upset_COG_meta_sum <- data_upset_COG_meta_sum[-1, ]
+data_upset_COG_meta_sum_num <- sapply(data_upset_COG_meta_sum, as.numeric)  
+data_upset_COG_meta_sum_num <- data.frame(names = row.names(data_upset_COG_meta_sum), data_upset_COG_meta_sum_num)
+
+upset(data_upset_COG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+  
+```
+
+`r if(length(meta_table$meta3)){ "### Meta 3"} `
+
+```{r upset_plot_COG_meta3, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(length(meta_table$meta3)){
+data_upset_COG_meta_sum <- data_upset_COG_meta %>%  
+                           group_by(meta3) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_COG_meta_sum) <- data_upset_COG_meta_sum[1, ]
+data_upset_COG_meta_sum <- data_upset_COG_meta_sum[-1, ]
+data_upset_COG_meta_sum_num <- sapply(data_upset_COG_meta_sum, as.numeric)  
+data_upset_COG_meta_sum_num <- data.frame(names = row.names(data_upset_COG_meta_sum), data_upset_COG_meta_sum_num)
+
+upset(data_upset_COG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+```
+
+`r if(length(meta_table$meta4)){ "### Meta 4"} `
+
+```{r upset_plot_COG_meta4, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(length(meta_table$meta4)){
+  data_upset_COG_meta_sum <- data_upset_COG_meta %>%  
+                           group_by(meta4) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_COG_meta_sum) <- data_upset_COG_meta_sum[1, ]
+data_upset_COG_meta_sum <- data_upset_COG_meta_sum[-1, ]
+data_upset_COG_meta_sum_num <- sapply(data_upset_COG_meta_sum, as.numeric)  
+data_upset_COG_meta_sum_num <- data.frame(names = row.names(data_upset_COG_meta_sum), data_upset_COG_meta_sum_num)
+
+upset(data_upset_COG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+  
+}
+```
+
+`r if(length(meta_table$meta5)){ "### Meta 5"} `
+
+```{r upset_plot_COG_meta5, echo=FALSE,fig.width= 10, fig.height=5}
+  
+if(length(meta_table$meta5)){
+  data_upset_COG_meta_sum <- data_upset_COG_meta %>%  
+                           group_by(meta5) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_COG_meta_sum) <- data_upset_COG_meta_sum[1, ]
+data_upset_COG_meta_sum <- data_upset_COG_meta_sum[-1, ]
+data_upset_COG_meta_sum_num <- sapply(data_upset_COG_meta_sum, as.numeric)  
+data_upset_COG_meta_sum_num <- data.frame(names = row.names(data_upset_COG_meta_sum), data_upset_COG_meta_sum_num)
+
+upset(data_upset_COG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+  
+}
+```
+
+`r if(!is.null(meta_table)){ "## NOG accession comparison"} `
+`r if(!is.null(meta_table)){ "### Meta 1"} `
+```{r upset_plot_NOG_meta1, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(!is.null(meta_table)){
+rownames(data_fun_NOG_acc) <- data_fun_NOG_acc[,1]
+rownames(meta_table) <- meta_table[,1]
+data_upset_NOG <- (data_fun_NOG_acc[,-1])[-1,]
+data_upset_NOG_meta <- cbind(meta_table, t(data_upset_NOG))
+data_upset_NOG_meta_sum <- data_upset_NOG_meta %>%  
+                           group_by(meta1) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_NOG_meta_sum) <- data_upset_NOG_meta_sum[1, ]
+data_upset_NOG_meta_sum <- data_upset_NOG_meta_sum[-1, ]
+data_upset_NOG_meta_sum_num <- sapply(data_upset_NOG_meta_sum, as.numeric)  
+data_upset_NOG_meta_sum_num <- data.frame(names = row.names(data_upset_NOG_meta_sum), data_upset_NOG_meta_sum_num)
+
+upset(data_upset_NOG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+```
+
+`r if(length(meta_table$meta2)){ "### Meta 2"} `
+
+```{r upset_plot_NOG_meta2, echo=FALSE,fig.width= 10, fig.height=5}
+if(length(meta_table$meta2)){
+data_upset_NOG_meta_sum <- data_upset_NOG_meta %>%  
+                           group_by(meta2) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_NOG_meta_sum) <- data_upset_NOG_meta_sum[1, ]
+data_upset_NOG_meta_sum <- data_upset_NOG_meta_sum[-1, ]
+data_upset_NOG_meta_sum_num <- sapply(data_upset_NOG_meta_sum, as.numeric)  
+data_upset_NOG_meta_sum_num <- data.frame(names = row.names(data_upset_NOG_meta_sum), data_upset_NOG_meta_sum_num)
+
+upset(data_upset_NOG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+  
+```
+
+`r if(length(meta_table$meta3)){ "### Meta 3"} `
+
+```{r upset_plot_NOG_meta3, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(length(meta_table$meta3)){
+data_upset_NOG_meta_sum <- data_upset_NOG_meta %>%  
+                           group_by(meta3) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_NOG_meta_sum) <- data_upset_NOG_meta_sum[1, ]
+data_upset_NOG_meta_sum <- data_upset_NOG_meta_sum[-1, ]
+data_upset_NOG_meta_sum_num <- sapply(data_upset_NOG_meta_sum, as.numeric)  
+data_upset_NOG_meta_sum_num <- data.frame(names = row.names(data_upset_NOG_meta_sum), data_upset_NOG_meta_sum_num)
+
+upset(data_upset_NOG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+}
+```
+
+`r if(length(meta_table$meta4)){ "### Meta 4"} `
+
+```{r upset_plot_NOG_meta4, echo=FALSE,fig.width= 10, fig.height=5}
+
+if(length(meta_table$meta4)){
+  data_upset_NOG_meta_sum <- data_upset_NOG_meta %>%  
+                           group_by(meta4) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_NOG_meta_sum) <- data_upset_NOG_meta_sum[1, ]
+data_upset_NOG_meta_sum <- data_upset_NOG_meta_sum[-1, ]
+data_upset_NOG_meta_sum_num <- sapply(data_upset_NOG_meta_sum, as.numeric)  
+data_upset_NOG_meta_sum_num <- data.frame(names = row.names(data_upset_NOG_meta_sum), data_upset_NOG_meta_sum_num)
+
+upset(data_upset_NOG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+  
+}
+```
+
+`r if(length(meta_table$meta5)){ "### Meta 5"} `
+
+```{r upset_plot_NOG_meta5, echo=FALSE,fig.width= 10, fig.height=5}
+  
+if(length(meta_table$meta5)){
+  data_upset_NOG_meta_sum <- data_upset_NOG_meta %>%  
+                           group_by(meta5) %>%
+                           summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+                           mutate_if(is.numeric, ~1 * (. != 0)) %>%
+                           t() %>% as.data.frame()
+
+colnames(data_upset_NOG_meta_sum) <- data_upset_NOG_meta_sum[1, ]
+data_upset_NOG_meta_sum <- data_upset_NOG_meta_sum[-1, ]
+data_upset_NOG_meta_sum_num <- sapply(data_upset_NOG_meta_sum, as.numeric)  
+data_upset_NOG_meta_sum_num <- data.frame(names = row.names(data_upset_NOG_meta_sum), data_upset_NOG_meta_sum_num)
+
+upset(data_upset_NOG_meta_sum_num, order.by = "freq", number.angles = 30, point.size = 4, line.size = 1, 
+      text.scale = c(1.5, 1.3, 1.5, 1.5, 1.5, 1.75), mb.ratio = c(0.6, 0.4))
+  
+}
+```
