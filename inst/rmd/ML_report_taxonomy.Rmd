@@ -62,7 +62,7 @@ library(DT)
 # version control
 # 20190819
 # 20210608 added Meta information; added downloadable tables
-
+# 20210804 added percent stacked bar plots
 
 ```
 
@@ -497,7 +497,7 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig1, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_species_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
@@ -507,7 +507,7 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig2, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_genus_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
@@ -517,7 +517,7 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig3, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_family_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
@@ -527,7 +527,7 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig4, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_order_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
@@ -537,7 +537,7 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig5, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_class_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
@@ -547,7 +547,69 @@ if(ncol(summary_file_taxonomy_short$extract_species) >2){
 ```{r composition_fig6, echo=FALSE,fig.width= 10,fig.height=6}
 
   ggplotly(ggplot(summary_file_taxonomy_long$extract_phylum_gg, aes(x = Sample, y = Intensity, fill = Name)) +
-             geom_bar(stat='identity') + theme_bw() +
+             geom_bar(stat = "identity") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+# Percent stacked bar plots based on protein biomass
+
+## Percent stacked bar plot, species-level:
+```{r composition_fig1p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_species_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+## Percent stacked bar plot, genus-level:
+```{r composition_fig2p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_genus_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+## Percent stacked bar plot, family-level:
+```{r composition_fig3p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_family_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+## Percent stacked bar plot, order-level:
+```{r composition_fig4p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_order_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+## Percent stacked bar plot, class-level:
+```{r composition_fig5p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_class_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
+             ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  )
+
+```
+
+## Percent stacked bar plot, phylum-level:
+```{r composition_fig6p, echo=FALSE,fig.width= 10,fig.height=6}
+
+  ggplotly(ggplot(summary_file_taxonomy_long$extract_phylum_gg, aes(x = Sample, y = Intensity, fill = Name)) +
+              geom_col(position = "fill") + theme_bw() +
              ylab("Intensity") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   )
 
