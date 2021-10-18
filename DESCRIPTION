@@ -26,6 +26,11 @@ Imports:
   DT,
   rmetalab,
   rio,
-  factoextra,
-  pheatmap
+  factoextra, 
+  pheatmap,
+  DESeq2,
+  GSVA,
+  limma,
+  kableExtra
+  
   

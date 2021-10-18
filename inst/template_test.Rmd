@@ -271,8 +271,8 @@ rmarkdown::render("./rmd/MQ_report_peptides.Rmd",output_format = "html_document"
 
 ```{r}
 
-data_table  <- read.delim("./extdata/peptides_report.txt", header = TRUE,check.names = FALSE, stringsAsFactors = FALSE) # NOTE the readin options
-meta_table <- read.delim("./extdata/metainfo.txt", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE) # with meta file
+data_table  <- rio::import("./extdata/peptides_report.txt", header = TRUE,check.names = FALSE, stringsAsFactors = FALSE) # NOTE the readin options
+meta_table <- rio::import("./extdata/metainfo.txt", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE) # with meta file
 
 rmarkdown::render("./rmd/MQ_report_peptides.Rmd",output_format = "html_document", params = list(data_table =  data_table, meta_table = meta_table), output_file="MQ_report_peptides.html",output_dir = getwd())
 
@@ -425,7 +425,7 @@ url_server<- paste0(url_api_split[1],"//", url_api_split[3],"/")
 
 # upload file and do the rendering
 # variable r is the returning information from the curl function
-r <- httr::POST(url_api, body = list(file = httr::upload_file("functions.csv")))
+r <- httr::POST(url_api, body = list(file = httr::upload_file("extdata/functions.csv")))
 
 r$status_code
 
@@ -485,10 +485,19 @@ curl::curl_download(paste0(url_server, path_target), "report_function_summary.ht
 ```{r}
 
 
-data_table <- read.delim("functions.csv", header = TRUE,check.names = FALSE, stringsAsFactors = FALSE)
+data_table <- read.delim("extdata/functions.csv", header = TRUE,sep= ",",check.names = TRUE, stringsAsFactors = FALSE)
+#data_table <- read.delim("extdata/functions_20211015.csv", header = TRUE,sep= ",",check.names = TRUE, stringsAsFactors = FALSE)
 # knit to all supported format (here we support pdf and html)
-rmarkdown::render("ML_report_function.Rmd",output_format = "html_document", params = list(input_datatable =  data_table))
 
+data_table <- read.delim("extdata/functions_20211018.tsv", header = TRUE,sep= "\t",quote="", check.names = TRUE, stringsAsFactors = FALSE,)
+
+
+
+data_table <- rio::import("extdata/functions_20211018.tsv",check.names = TRUE)
+
+
+
+rmarkdown::render("rmd/ML_report_function.Rmd",output_format = "html_document", params = list(input_datatable =  data_table))
 
 
 
@@ -504,6 +513,39 @@ data_table <- read.delim("functions.csv", header = TRUE,check.names = FALSE, str
 meta_table <- read.delim("metainfo.txt", header = TRUE,check.names = FALSE, stringsAsFactors = FALSE) 
 
 rmarkdown::render("ML_report_function.Rmd",output_format = "html_document", params = list(input_datatable =  data_table, meta_table = meta_table ))
+
+
+```
+
+# pepFunk 
+
+## locally
+
+```{r}
+
+data_table  <- data_table <- read.delim("./extdata/peptides.txt", row.names = 1) # NOTE the readin options
+
+meta_table <- rio::import("./extdata/metainfo_pepfunk.txt", header = TRUE, check.names = FALSE, stringsAsFactors = FALSE) # with meta file
+
+#meta_table <- read.delim("./extdata/metadata.csv", header=F, sep=",")
+
+
+rmarkdown::render("./rmd/ML_report_pepFunk.Rmd",output_format = "html_document", output_dir = getwd(), params = list(data_table =  data_table, meta_table = meta_table ))
+
+
+
+rmarkdown::render("./rmd/ML_report_pepFunk.Rmd",output_format = "html_document", output_dir = getwd(), envir = new.env(), params = list(data_table =  data_table, meta_table = meta_table ))
+
+
+
+# for debugging
+
+#params$data_table <- data_table
+#params$meta_table <- meta_table
+
+
+
+
 
 
 ```
