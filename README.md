@@ -1,40 +1,102 @@
 # metareport
 
- The only function/purpose is Automatic report generation from Metalab result.
- The main function metareport provides an interface to take data table in and render rmd template into report.
+ The only function/purpose of this package is automatic report generation from Metalab results.
+ 
+ The main function metareport provides an interface to take data table (and meta_table as optional)in and render rmd template into report. 
+ 
+ This package is designed for opencpu usage, but still can run as standalone version see examples by example(metareport)
+ 
  This package is now under active development for Metalab HGM version only. 
+ 
 
-# help
+# Install and run
+
+
+metareport heavily relies on rmetalab
+
+```
+devtools::install_github("northomics/rmetalab") 
+devtools::install_github("northomics/metareport")
+
+```
+
+After everything installed, you should be able to run the followings. 
+Check the working directory for the reports just generated.
+
+
+```
+# for summary report
+metareport(type = "summary",
+           data_file = system.file("extdata/HGM/final_summary.tsv", package = "metareport"),
+           meta_file = system.file("extdata/HGM/meta_info.tsv", package = "metareport"),
+           output_dir =  getwd(), 
+           output_file = "report_summary.html")
+
+
+# for  peptide
+metareport(type = "peptide",
+           data_file = system.file("extdata/HGM/final_peptides.tsv",package = "metareport"),
+           meta_file = system.file("extdata/HGM/meta_info.tsv", package = "metareport"),
+           output_dir =  getwd(), 
+           output_file = "report_peptide.html")
+           
+   
+# for protein
+metareport(type = "protein",
+           data_file = "extdata/HGM/final_proteins.tsv",
+           meta_file = "extdata/HGM/meta_info.tsv",
+           output_dir =  getwd(), 
+           output_file = "report_protein.html")        
+
+
+# for taxon
+metareport(type = "taxon",
+           data_file = system.file("extdata/HGM/Taxa.tsv", package = "metareport"),
+           meta_file = system.file("extdata/HGM/meta_info.tsv", package = "metareport"),
+           output_dir =  getwd(), 
+           output_file = "report_taxon.html")
+
+# for function
+metareport(type = "function",
+           data_file = system.file("extdata/HGM/functions_report.tsv", package = "metareport"),
+           meta_file = system.file("extdata/HGM/meta_info.tsv", package = "metareport"),
+           output_dir =  getwd(), 
+           output_file = "report_function.html")
+
+
+```
+
+
 
 There is only one function {metareport} to include all options.
 The main input files are data_table (summary, peptide, protein, taxon or function)
-There are internal rmarkdown template files in \inst\rmd by default. Users can specify there own templates by url
+There are internal rmarkdown template files in \inst\rmd by default. Users can also specify their own templates by url
 
-How to setup?
-1--In order to use achieve this function from openCPU server, users need to have an opencpu server setup first (check the opencpu website for the installation). 
+# Setup opencpu server
+
+In order to use this function from openCPU server, users need to have an opencpu server setup first (check the [opencpu website](https://www.opencpu.org/download.html) for the installation). 
+
 You need to write down the api url, like http://ipv4-address/ocpu/library/rmdocpu/R/sub-function-name
+
 It would be better to have one or even more opencpu server as backup. 
 
-Otherwise you can also use these template locally
 
-2--Required packages
-rmetalab package from the github provides required basic functions for data processing
-metapreport inlcudes the interface and all basic functions
+Once you know the principle how to upload (post) your data table, and download the report file (curl), you will be able to adapt this in to java, python, javascripit in html.
 
-How to use?
-This pacakge can be used in local R environment.
-The point is the ability of using it on remove openCPU server
-Once you know the principle how to upload (post) your data table, and download the report file (curl), you will be able to adapt this in to java, python, javascripit in html. 
+
 
 
 
 # change log
 
+V 0.2.0 (20220301) completely re-write the code for all 5 templates, using sub-doc and functions to deal with meta to make better usage of the code. This version also does not rely on external templates, etc. from github, gitlab. All resources are locally stored. A lot of reused coding blocks are packed into functions, into another acompany package, rmetalab. All these efforts are made to make the template consise and expandable.  
+This version is first destined to be compatible with the new HGM version, and will be applied to other versions as well. 
+
 V 0.0.9 (20220215) file organization, built test 
 
 V 0.0.8 (20211019) add a unified function function with parameters to evoke all reports, old function still kept
 
-V 0.0.7, using rio::import to read tsv/csv file. This will generalize the file input. e.g. the function.csv is a csv file, while all others files are tsv.
+V 0.0.7, using rio::import to read tsv/csv file (internally using fread). This will generalize the file input. e.g. the function.csv is a csv file, while all others files are tsv.
 uisng rio:import also helps to avoid some unexpected (e.g. semi quot in csv file) causing incomplete reading. 
 
 V 0.0.6 add support for pdf format report generation (for some slow computers, openning a large html file (with a lot of figures and table will be slow))
