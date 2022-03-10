@@ -1,13 +1,14 @@
 Package: metareport
 Type: Package
-Title: Metalab report upon provided templates
-Version: 0.0.7
+Title: Metalab result report 
+Version: 0.2.0
 Authors@R: 
     person(given = "Zhibin",
            family = "Ning",
            role = c("aut", "cre"),
            email = "ningzhibin@gmail.com")
-Maintainer: Ning Zhibin <ningzhibin@gmail.com>
+Maintainer: Zhibin Ning <ningzhibin@gmail.com>, 
+            Leyuan Li <lileyuan2016@gmail.com>
 Description: A wrapper function of rmarkdown::render for metalab report generation
 License: GNU
 Encoding: UTF-8
@@ -24,13 +25,14 @@ Imports:
   shiny,
   tidyverse,
   DT,
-  rmetalab,
   rio,
   factoextra, 
   pheatmap,
   DESeq2,
   GSVA,
   limma,
-  kableExtra
+  kableExtra,
+  rmetalab,
+  dendextend
   
   
