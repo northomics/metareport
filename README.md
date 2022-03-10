@@ -4,7 +4,7 @@
  
  The main function metareport provides an interface to take data table (and meta_table as optional)in and render rmd template into report. 
  
- This package is designed for opencpu usage, but still can run as standalone version see examples by example(metareport)
+ This package is designed for opencpu usage, but still can run as standalone version see examples below
  
  This package is now under active development for Metalab HGM version only. 
  

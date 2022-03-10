@@ -51,6 +51,7 @@
 #'     output_file = "report_function.html")
 #'
 #'
+#'
 #' @export
 #'
 #'
